@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+simulation/event_log.csv
+.env
+.vscode/
