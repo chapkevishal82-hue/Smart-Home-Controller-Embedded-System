@@ -1,472 +1,139 @@
-🏠 Smart Home Controller — Embedded System
+# 🏡 Smart Home Controller — Embedded Systems
 
-«A smart, scalable, and efficient embedded-system solution for monitoring and controlling home appliances through a centralized controller.»
+A motion, light, and temperature-aware home automation controller with automatic lighting, temperature-based fan control, security alerting, and manual override — built as **both** real Arduino/ESP32 firmware and a **live interactive dashboard**.
 
-""Embedded Systems" (https://img.shields.io/badge/Domain-Embedded%20Systems-0A66C2?style=for-the-badge)" (https://github.com/)
-""IoT" (https://img.shields.io/badge/Technology-IoT-00A98F?style=for-the-badge)" (https://github.com/)
-""C/C++" (https://img.shields.io/badge/Language-C%2FC%2B%2B-00599C?style=for-the-badge)" (https://github.com/)
-""Microcontroller" (https://img.shields.io/badge/Platform-Microcontroller-6F42C1?style=for-the-badge)" (https://github.com/)
-""Status" (https://img.shields.io/badge/Status-Active-success?style=for-the-badge)" (https://github.com/)
+![status](https://img.shields.io/badge/status-active-brightgreen) ![python](https://img.shields.io/badge/python-3.9+-blue) ![flask](https://img.shields.io/badge/flask-simulation-black) ![arduino](https://img.shields.io/badge/arduino-C%2FC%2B%2B-00979D) ![render](https://img.shields.io/badge/deployed-render-46E3B7)
 
-
-🔴Live demo https://smart-home-controller-embedded-system.onrender.com)
+**🔴 Live demo:** *(https://smart-home-controller-embedded-system.onrender.com)*
 
 ---
 
-🚀 Overview
+## 📌 Objective
 
-Smart Home Controller is an embedded-system project designed to provide centralized control and monitoring of household appliances.
+Design a cost-effective, scalable home automation system that:
+- Automatically controls lights based on motion + darkness
+- Automatically controls a fan based on temperature (with hysteresis)
+- Raises a security alert if motion is detected while security mode is armed
+- Allows manual override of light/fan at any time
+- Displays live status on an LCD/OLED and logs every event
 
-The system integrates a microcontroller, sensors, input controls, and output devices to create an intelligent home-automation platform.
+## 🏭 Industry Relevance
 
-The project demonstrates practical implementation of:
+This mirrors real systems from Google Nest, Amazon Alexa, Philips Hue, and Samsung SmartThings. Applicable across smart homes, offices, hotels, hospitals, and industrial building management systems — anywhere energy efficiency and automated safety monitoring matter.
 
-- Embedded C/C++ programming
-- Microcontroller-based control
-- Sensor integration
-- Digital input/output management
-- Appliance automation
-- Real-time system behavior
-- Modular embedded-system architecture
-- IoT-ready design concepts
+## 🧠 Automation Logic (Priority Order)
 
-The primary objective is to build a reliable and extensible controller that can serve as the foundation for a modern smart-home ecosystem.
+```
+1. SECURITY      — always wins. Motion + security armed = alarm, overrides everything.
+2. MANUAL         — if no active alert, manual override takes control of light/fan.
+3. AUTOMATIC      — otherwise, sensor-driven rules apply:
+                     Light  = Motion AND Dark (light_level < 40%)
+                     Fan    = Temperature > 28°C ON, < 26°C OFF (hysteresis)
+```
 
----
+## 🧩 Architecture
 
-🎯 Project Objectives
+```
+PIR Sensor ───────────┐
+LDR ──────────────────┤
+Temperature Sensor ───┤
+Manual Switches ──────┤
+Security Mode ────────┤
+                      ↓
+              Arduino / ESP32
+                      ↓
+              Control Algorithm
+               ↓      ↓      ↓
+             Light   Fan   Security
+               ↓      ↓      ↓
+             Relay   Relay  Buzzer
+                      ↓
+                 LCD / OLED
+```
 
-- Control multiple home appliances from a centralized system
-- Monitor environmental and device-related conditions
-- Automate appliance behavior based on sensor inputs
-- Provide a simple and efficient control interface
-- Demonstrate real-time embedded programming
-- Build a scalable architecture for future IoT integration
-- Improve energy-management possibilities through automation
+## 🛠 Hardware (Option B — Recommended)
 
----
+| Component | Role |
+|---|---|
+| Arduino UNO / ESP32 | Microcontroller running the automation logic |
+| PIR Motion Sensor | Detects human presence |
+| LDR | Measures room brightness (voltage divider + ADC) |
+| DHT11 / DHT22 | Temperature sensing |
+| Relay Modules / LEDs | Light and fan actuation (low-voltage simulated loads) |
+| Buzzer + Red LED | Security alarm indicators |
+| 16x2 LCD | Live status display |
+| Manual Switches | Security mode toggle, manual override, manual light/fan buttons |
 
-✨ Key Features
+Full firmware: [`arduino_code/smart_home_controller.ino`](./arduino_code/smart_home_controller.ino)
 
-🏠 Appliance Control
+## 💻 Virtual Simulation (run this now — no hardware needed)
 
-Control connected appliances such as:
+The dashboard mirrors the firmware's exact logic (`simulation/smart_home_state.py`), so what you see in the browser is what the real hardware would do.
 
-- 💡 Lights
-- 🌀 Fans
-- 🔌 Power outlets
-- ❄️ Cooling systems
-- 📺 Other compatible devices
+**Features:**
+- Illustrated room view with glowing lamp, spinning fan icon, and motion ripple animation
+- Interactive sliders to simulate LDR (light level) and DHT (temperature) sensor readings
+- One-click PIR motion trigger
+- Security mode + manual override toggles, with per-device manual switches
+- Live radial gauges for temperature and light level
+- Live temperature history chart
+- Real-time, timestamped event log
 
-🌡️ Sensor Monitoring
+### Run locally in VS Code
 
-The controller can be extended with sensors for:
+```bash
+cd simulation
+pip install -r requirements.txt
+python app.py
+```
 
-- Temperature
-- Humidity
-- Motion
-- Light intensity
-- Environmental conditions
+Open **http://localhost:5000**.
 
-⚡ Automation
+### Deploy on Render
 
-The system can execute predefined actions according to sensor values or user commands.
+`Procfile` and `render.yaml` are already set up.
 
-Example:
+1. Push this repo to GitHub.
+2. On [render.com](https://render.com) → **New +** → **Web Service** → connect the repo.
+3. If not auto-detected: Root Directory = `simulation`, Build Command = `pip install -r requirements.txt`, Start Command = `gunicorn app:app`.
+4. Deploy, then paste your live `.onrender.com` URL into the top of this README.
 
-Motion Detected
-       ↓
-Controller Processes Input
-       ↓
-Automation Rule Triggered
-       ↓
-Light / Appliance Activated
+> Free-tier note: Render's free plan spins down when idle, so the first load after inactivity can take 30–50 seconds, and `event_log.csv` resets on redeploy — expected behavior, not a bug.
 
-🎛️ Centralized Control
+## 📁 Folder Structure
 
-A single controller manages multiple connected devices through a structured input/output architecture.
-
-🔄 Real-Time Operation
-
-The embedded controller continuously monitors inputs and responds to events with low processing overhead.
-
-🧩 Modular Architecture
-
-Hardware and software components are organized into independent modules, making the system easier to maintain and extend.
-
----
-
-🏗️ System Architecture
-
-                    ┌──────────────────────┐
-                    │    User Interface    │
-                    │ Buttons / App / UI   │
-                    └──────────┬───────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │   Smart Controller   │
-                    │    Microcontroller    │
-                    └──────────┬───────────┘
-                               │
-              ┌────────────────┼────────────────┐
-              │                │                │
-              ▼                ▼                ▼
-       ┌────────────┐   ┌────────────┐   ┌────────────┐
-       │  Sensors   │   │ Automation │   │   Status   │
-       │            │   │   Logic    │   │ Monitoring │
-       └────────────┘   └────────────┘   └────────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │   Output / Drivers   │
-                    └──────────┬───────────┘
-                               │
-             ┌─────────────────┼─────────────────┐
-             ▼                 ▼                 ▼
-        ┌─────────┐       ┌─────────┐       ┌─────────┐
-        │  Light  │       │  Fan    │       │Appliance│
-        └─────────┘       └─────────┘       └─────────┘
-
----
-
-🔧 Hardware Requirements
-
-Depending on the implementation, the following components can be used:
-
-Component| Purpose
-Microcontroller| Main system controller
-Relay / Driver Module| Appliance switching interface
-LEDs| Status indication
-Push Buttons| Manual control
-Temperature Sensor| Temperature monitoring
-Motion Sensor| Occupancy detection
-Light Sensor| Ambient-light detection
-LCD / OLED| System status display
-Power Supply| System power
-Breadboard / PCB| Circuit implementation
-Jumper Wires| Hardware connections
-
-«Note: Component selection can be adapted according to the specific microcontroller and circuit design used in your implementation.»
-
----
-
-💻 Software Requirements
-
-- Embedded C / C++
-- Microcontroller IDE / Toolchain
-- Serial Monitor
-- Circuit simulation software (optional)
-- Git & GitHub
-- USB programmer/debugger where applicable
-
----
-
-🛠️ Technology Stack
-
-Programming
-
-- C
-- C++
-- Embedded programming
-
-Embedded Concepts
-
-- GPIO
-- Interrupts
-- Timers
-- PWM
-- ADC
-- UART / Serial Communication
-- Sensor interfacing
-- Device drivers
-- Real-time event handling
-
-Development
-
-- Microcontroller SDK / IDE
-- Serial debugging
-- Git & GitHub
-
-Future Connectivity
-
-The architecture can be extended with:
-
-- Wi-Fi
-- Bluetooth
-- MQTT
-- Cloud dashboards
-- Mobile applications
-- Web-based control panels
-
----
-
-📂 Project Structure
-
+```
 Smart-Home-Controller-Embedded-System/
-│
-├── src/
-│   ├── main.c
-│   ├── controller.c
-│   ├── sensors.c
-│   └── appliances.c
-│
-├── include/
-│   ├── controller.h
-│   ├── sensors.h
-│   └── appliances.h
-│
-├── hardware/
-│   ├── circuit-diagram.png
-│   └── pinout.md
-│
+├── arduino_code/
+│   └── smart_home_controller.ino   # Real hardware firmware
+├── simulation/
+│   ├── app.py                      # Flask backend + API
+│   ├── smart_home_state.py         # Core automation state machine
+│   ├── templates/dashboard.html    # Interactive dashboard UI
+│   ├── requirements.txt
+│   ├── Procfile
+│   └── render.yaml
+├── circuit_diagram/
+├── test_cases/
 ├── docs/
-│   ├── architecture.md
-│   └── project-documentation.md
-│
-├── images/
-│   ├── prototype.jpg
-│   ├── circuit.jpg
-│   └── system-demo.jpg
-│
-├── README.md
-└── LICENSE
-
-«Adjust the structure to match your actual repository files.»
-
----
-
-⚙️ How It Works
-
-1. System Initialization
-
-The microcontroller initializes:
-
-- GPIO pins
-- Sensors
-- Output devices
-- Communication interfaces
-- Control logic
-
-2. Input Monitoring
-
-The controller continuously reads information from sensors and user controls.
-
-3. Decision Processing
-
-The embedded software evaluates the received input against predefined control rules.
-
-4. Appliance Control
-
-Based on the decision, the controller activates or deactivates the appropriate output.
-
-5. Continuous Monitoring
-
-The process repeats continuously, allowing the system to react to changing conditions.
-
-Initialize System
-       ↓
-Read Inputs
-       ↓
-Process Sensor / User Data
-       ↓
-Apply Control Logic
-       ↓
-Update Outputs
-       ↓
-Monitor System Status
-       ↓
-Repeat
-
----
-
-📸 Project Preview
-
-Add your actual project images here:
-
-🔌 Hardware Prototype
-
-![Hardware Prototype](images/prototype.jpg)
-
-🧩 Circuit Diagram
-
-![Circuit Diagram](images/circuit.jpg)
-
-🖥️ System Demonstration
-
-![System Demo](images/system-demo.jpg)
-
-Tip: A real hardware photograph, circuit diagram, and short demonstration GIF/video can make the repository much more compelling to recruiters.
-
----
-
-🧠 Embedded-System Concepts Demonstrated
-
-This project provides practical experience with:
-
-- Microcontroller architecture
-- GPIO programming
-- Sensor interfacing
-- Digital electronics
-- Analog signal acquisition
-- Device control
-- Embedded C/C++
-- Hardware/software integration
-- Event-driven programming
-- Serial communication
-- Debugging and testing
-- Modular software design
-
----
-
-📊 Design Goals
-
-Goal| Implementation
-Reliability| Modular control logic
-Scalability| Expandable device interfaces
-Efficiency| Lightweight embedded processing
-Maintainability| Structured source modules
-Automation| Rule-based control
-Extensibility| IoT-ready architecture
-
----
-
-🔮 Future Enhancements
-
-The system can be further evolved into a complete IoT-based smart-home platform.
-
-Planned Enhancements
-
-- 📱 Android / iOS mobile application
-- 🌐 Web-based control dashboard
-- ☁️ Cloud integration
-- 📡 Wi-Fi connectivity
-- 🔵 Bluetooth connectivity
-- 📨 MQTT communication
-- 📊 Real-time sensor dashboard
-- 🤖 AI-assisted automation
-- ⚡ Energy-consumption monitoring
-- 🔐 User authentication
-- 🔒 Secure device communication
-- 🧠 Predictive automation
-- 🏠 Multi-room device management
-
----
-
-🔐 Security Considerations
-
-For future network-connected versions, security should be considered from the beginning.
-
-Recommended areas include:
-
-- Authentication
-- Authorization
-- Secure communication
-- Credential protection
-- Firmware integrity
-- Network segmentation
-- Secure update mechanisms
-
-Never commit passwords, API keys, Wi-Fi credentials, or other secrets to the repository.
-
----
-
-🧪 Testing Strategy
-
-The project can be validated through multiple testing levels:
-
-Hardware Testing
-
-- Sensor response testing
-- GPIO verification
-- Power-supply validation
-- Output-device testing
-
-Software Testing
-
-- Input validation
-- Control-logic testing
-- Error-condition testing
-- Communication testing
-
-System Testing
-
-Sensor Input
-     ↓
-Controller
-     ↓
-Decision Logic
-     ↓
-Output Driver
-     ↓
-Appliance Response
-
-Each stage can be independently verified before performing complete system integration.
-
----
-
-📈 Learning Outcomes
-
-This project strengthens practical knowledge of:
-
-Embedded Systems → Microcontrollers → Electronics → Sensors → Automation → C/C++ → IoT Architecture
-
-It also demonstrates the ability to integrate hardware and software into a functional engineering solution.
-
----
-
-👨‍💻 Author
-
-Vishal Chandrakant Chapke
-
-B.Tech Computer Science Engineering Student
-
-Interested in:
-
-- Embedded Systems
-- Internet of Things
-- Software Development
-- Artificial Intelligence & Machine Learning
-- Cloud & DevOps
-- Full-Stack Development
-
----
-
-⭐ Why This Project Matters
-
-This project goes beyond basic appliance switching by demonstrating the complete hardware → firmware → control logic → automation workflow.
-
-It represents hands-on experience in building an embedded solution that can be expanded toward a production-oriented IoT architecture.
-
----
-
-🤝 Contributing
-
-Contributions, ideas, improvements, and technical feedback are welcome.
-
-1. Fork the repository
-2. Create a feature branch
-3. Implement your changes
-4. Test the changes
-5. Commit your work
-6. Open a Pull Request
-
----
-
-📄 License
-
-This project is available under the MIT License.
-
-See the "LICENSE" file for details.
-
----
-
-⭐ Support
-
-If you find this project useful or interesting, consider giving the repository a ⭐ Star and sharing feedback.
-
----
-
-🚀 Built with Embedded Engineering • Automation • IoT • C/C++
-
-Smart Home Controller — Connecting hardware, software, and intelligent automation.
+├── reports/
+├── screenshots/
+└── README.md
+```
+
+## 🧪 Test Scenarios
+
+```
+| Scenario | Input | Expected Output |
+|---|---|---|
+| Bright room, no motion | light=80%, motion=off | Light OFF |
+| Dark room + motion | light=20%, motion=trigger | Light ON |
+| High temperature | temp=32°C | Fan ON |
+| Normal temperature | temp=22°C | Fan OFF |
+| Security armed + motion | security=on, motion=trigger | Alarm + red LED + "INTRUDER ALERT" |
+| Manual override | manual=on, light=on | Light ON regardless of sensors |
+```
+👤 Author
+VISHAL CHAPKE 
+[GitHub] https://github.com/chapkevishal82-hue/Smart-Home-Controller-Embedded-System
+[LinkedIn] https://www.linkedin.com/in/vishal-chapke-9bb3b0344?utm_source=share_via&utm_content=profile&utm_medium=member_android
